@@ -1,45 +1,45 @@
-# Chapter 1
+# Additional resources
+- [tutoriat Matoka](https://github.com/Matoka26/OS_Tutoring_Materials/tree/main)
+- [tutorial Mihai](https://sirbuig.github.io/operating-systems/)
+
+# Overview
 ## Introduction
 
 ## Operating-System Structures
 
-# Chapter 2
+# Processes and threads
 ## Processes
-- A process is a program in execution: it is an active entity, unlike the program code that is passive
+- A **process** is a program in execution: it is an active entity, unlike the program code that is passive
 - A job is a synonym for process and is mostly use due to tradition
 - The program counter is a variable that points to the next instruction to execute in the current process
 - The status of the current activity of a process is represented by the value of the program counter and the contents of the processor’s registers
 - Process memory layout:
-  - Text section: the executable code
-  - Data section: global variables (initialised data (block started by symbol - bss), uninitialised data)
-  - Heap section: memory that is dynamically allocated during program runtime
-  - Stack section: temporary data storage when invoking functions (such as function parameters, return addresses, and local variables)
+  - **Text section**: the executable code
+  - **Data section**: global variables (initialised data (block started by symbol - bss), uninitialised data)
+  - **Heap section**: memory that is dynamically allocated during program runtime
+  - **Stack section**: temporary data storage when invoking functions (such as function parameters, return addresses, and local variables)
 ![](./images/process_memory_layout.png)
 ![](./images/example_process_layout.png)
-- Process states
-  - New. The process is being created.
-  - Running. Instructions are being executed.
-  - Waiting. The process is waiting for some event to occur (such as an I/O completion or reception of a signal).
-  - Ready. The process is waiting to be assigned to a processor.
-  - Terminated. The process has finished execution.
+- A **process control block** (PCB) is the kernel data structure that represents a process in an operating system; it consists of its state, program counter, CPU registers, memory management information, CPU scheduling information, accounting information, I/O status information (opened files, allocated devices etc.); it resides in different parts of the OS depending on its state
+- Process states:
+  - **New**. The process is being created. PCB is added into the process table
+  - **Running**. Instructions are being executed. PCB is stored in memory
+  - **Waiting**. The process is waiting for some event to occur (such as an I/O completion or reception of a signal). PCB is stored in the wating queue
+  - **Ready**. The process is waiting to be assigned to a processor. PCB is stored in the ready queue
+  - **Terminated**. The process has finished execution.
 ![](./images/process_states.png)
-- A process control block (PCB) is the kernel data structure that represents a process in an operating system.
+- From the PCB, all that is moved on the CPU when a process runs are just the registers and program counter; the rest is just for execution configuration
+- The context of a process consists of PCB (storing state) and its registers (active state)
 - The role of the process scheduler is to select an available process to run on a CPU.
-- PCB-ul este o structură de date menținută de sistemul de operare pentru a gestiona fiecare proces în parte. Fiecare proces are propriul PCB, care conține informații esențiale despre starea și execuția sa:
-  - Starea procesului: Indică dacă procesul este în starea Running, Waiting, Ready, etc.
-  - PID (Process Identifier): ID-ul unic al fiecărui proces.
-  - Contorul de program: Ține evidența ultimei instrucțiuni executate.
-  - Registrii de stare: Include valorile curente ale registrilor CPU
-  - Informații despre memorie: Include tabele de paginare, limite de segmentare și adrese de bază.
-  - Lista de fișiere deschise: Reține descriptorii de fișiere ale procesului.
 ![](./images/pcb.png)
 - A process can have multiple threads and, thus execute instructions in parallel
 - Each CPU core can run one process at a time and that one is chosen by the **process scheduler**
 - The number of processes currently in memory is known as the **degree of multiprogramming**
 ![](./images/process_queueing.png)
-- Context switch = state save + state restore
-- if the child process calls `exec()` in `fork()`, this changes the memory of the child process; thus the 2 processes are completely separate now, until the child terminates or the parent doesn't wait for its children
-- if the child process doesn't invoke `exec()` the 2 processes are concurent
+- **Context switch** = state save + state restore + kernel-user modes
+- A process can have children i.e. other processes with whom it doesn't share its stack and its heap, but only shared memory segments, code, file descriptors
+- if the child process calls `exec()` in `fork()`, this changes the memory of the child process; thus the 2 processes are completely separate now, until the child terminates or the parent doesn't wait for its children anymore
+- if the child process doesn't invoke `exec()` the 2 processes are concurrent
 - Cascade termination refers to the termination of children when the parent exits
 - `pid = wait(&status);`
 - if the parent didn't call `wait()` yet, its children are called **zombies**
@@ -94,23 +94,33 @@ while (true) {
 - when one needs to have only 2 processes to communicate then a simpler approach is to use **pipes**
 - use cases: command line
 - when implementing pipes, the following must be considered
-  - bidirectional or unidirectional communcation
+  - bidirectional or unidirectional communication
   - half duplex of full duplex (data tranfer)
   - parent-child relation between the processes
   - communication can take place over a network or only on the same machine
 - **Ordinary pipes**:
   - unidirectional (**reader end** and **writer end**)
-  - require parent-child relation
+  - require parent-child relation (each process has `int fd[2]`)
   - once a process terminates, the pipe ceases to exist
 - **Named pipes** / **FIFO**s (in UNIX):
   - bidirectional
   - no relation between processes required
+  - allows multiple processes to communicate with each others
   - UNIX: half-duplex (2 fifos for full-duplex)
   - Windows: full-duplex
   - UNIX: communication must reside on the same machine (sockets for cross-network communication)
   - Windows: can reside on different machines
-- Two common forms of client–server communication are sockets and remote procedure calls (RPCs). Sockets allow two processes on different machines to communicate over a network. RPCs abstract the concept of function (procedure) calls in such a way that a function can be invoked on another process that may reside on a separate computer.
-- A socket is an endpoint of communication
+- Two common forms of client–server communication are **sockets** and **remote procedure calls** (RPCs)
+- **Sockets**
+  - represent endpoints of communication
+  - allow two processes on different machines to communicate over a network
+  - they are a low level structure of communication and, thus, the bytes transfer is unstructured and the responsibility reside on the entities communicating
+- **RPCs**
+  - RPCs abstract the concept of function (procedure) calls in such a way that a function can be invoked on another process that may reside on a separate computer
+  - the messages send between the participants are well structured
+  - the communication consists of sending the function across the network to a listening **RPC daemon** that execute the function with the given parameters and returns the result as a request
+  - the communication is achieved using a **stub** (for each remote procedure) on the client in which the procedure parameters reside and then sends (through message passing) them to the server with the remote procedure body; another stub on the receiver gets the data
+  - in order to prevent issues of running a procedure multiple times or not executing it at all, 2 methods are implemented: **at most once** (timestamp on messages) and **exactly once** (**ACK** messages)
 
 ## Threads and concurrency
 - A thread is a basic unit of CPU utilisation
@@ -128,7 +138,7 @@ while (true) {
   2. Fork join (create threads and wait for them to finish, recursion)
 - `fork()` duplicate all threads if it doesn't consist of `exec()` command
 - A signal is used in UNIX systems to notify a process (same process - synchronous, another process - asychronous (ctrl+C)) that a particular event has occurred (usually division by 0 or illegal memory access)
-- ```kill(pid t pid, int signal)```
+- ```kill(pid_t pid, int signal)```
 - There are some situations when we want to cancel the execution of some threads (thus called **target threads**)
 - There are 2 methods of cancelling threads:
   - Async cancellation: where one thread is responsible for cancelling the target threads (this can have negative impact in freeing all the using memory because it kills it forcefully)
@@ -183,7 +193,7 @@ while (1) {
   - **Response time**: the time since the submission of the process until the first response
 - Gantt chart is a bar chart that illustrates a particular schedule, including the start and finish times of each of the participating processes
 - **First come first served (FCFS)**
-  - this algorithm can generate a **convoy effect** 
+  - this algorithm can generate a **convoy effect**
 ![](./images/fcfs.png)
 - **Shortest job first (SJF)**
   - minimum possible average waiting time
@@ -225,7 +235,7 @@ while (1) {
   - **Pull migrations**: in this approach, idle processors are the ones that pull threads from the overloaded ones
 - Because moving a thread along the processors is expensive due to cache tranfer, the thread manifest a **processor affinity** i.e. it wants to stay on the same processor as much time as possible; explain processor affinity in **asymmetric multiprocessing**
 - Soft affinity & hard affinity
-- In NUMA (non-uniform memory access architectures), there is a tension between **load balancing** and minimising **memory access time**
+- In NUMA (non-uniform memory access) architectures, there is a tension between **load balancing** and minimising **memory access time**
 - **Heterogenous multiprocessing (HMP)** & **big.LITTLE**
 - **Soft real time scheduling** vs **Hard real time scheduling** regarding critical processes
   - Latency: the difference in time between the moment when an event occurred and the time when it was served (ISR - interrupt service routine)
@@ -433,7 +443,7 @@ semaphore full = 0
 - **The philosophers problem**
 - A cross discipline solution to handle syncronization problems, that comes from database theory, is the **transactional memory**; here, the software or hardware (through **Software / hardware transactional memory (STM / HTM)**) assures the developer the operations are completed atomically, thus facilitating the programming process and debugging
 
-## Deadlocks
+## Deadlocks (optional, actually)
 - Each thread needs to access certain resources (which are typically mutexes, semaphores, locks etc.) from the system through the use of **request**, **use** and **release** operations
 - **Livelock** is similar to a deadlock where the processes block each other and don't make progress, even though they still do some operations
 - Conditions for deadlock:
@@ -467,6 +477,7 @@ semaphore full = 0
 # Memory management
 
 ## Main memory
+- The processes need to load data from somewhere in order to execute properly; we could store that data in PCB, but those would be huge; so we should have a special place where to store that data and, also, to access it rapidly - the main memory;
 - The **cache** is added to the CPUs in order to prevent the processors to reach the **stall** state, thus improving the access speed
 - We are also interested in the correctness of the operation the processors do and their permissions (user processes shouldn't access other user processes or the kernel processes); because the performance penalties would be terrible if these checks between CPU and memory would be implemented in software, they are implemented in hardware as follows: each process has a certain memory for itself and cannot access what is beyond it by bounding it with a **limit** and a **base register / relocation register**
 - Address binding can happen anytime from **compile time** to **load time** (both are **physical addresses**) and **execution time** (**virtual address**) (present more details)
@@ -502,9 +513,10 @@ semaphore full = 0
   - **Inverted page table**: a global page table that stores the frame for each process represented by the `pid`
 - If the total memory of the processes is greater than the main memory then we need **swapping** certain frames in the **backing store** (disk); in the modern operating systems swapping is accompanied by paging
 - **Swap space** is a dedicated portion of disk storage used by the OS to store pages that cannot fit in RAM.
+![](./images/memory_hierarchy.png)
 
 ## Virtual memory
-- **Virtual memory** address the issue of limited physical memory in the context of processes execution, since all the process memory should be in the physical memory in order to be executed, even though the process memory could be unused or too big. Virtual memory solves this issue by simply abstracting the logical memory of the processes such that the developer no longer needs to take care of how much physical memory is available
+- **Virtual memory** address the issue of limited physical memory in the context of processes execution, since all the process memory should be in the physical memory in order to be executed, even though the process memory could be unused or too big. Virtual memory solves this issue by simply abstracting the logical memory of the processes such that the developer no longer needs to take care of how much physical memory is available and the processes just referring to their local heap memory
 - The **virtual address space** is the address of a process in the virtual memory
 - **Demand paging** is a lazy technique for virtual memory that allocate the memory frame only when needed; to implement that we need to have a specific page table that allows us to retrieve the specific memory frames and the best way to represent that is with a valid-invalid bit page table such that when a page is in secondary memory (**page fault**) or the process is forbidden to access it the bit is set to invalid
 ![](./images/page_fault.png)
@@ -515,13 +527,221 @@ semaphore full = 0
 - To mitigate this issue, we can use a technique called **copy on write** that allows the parent and the child to initially share the same pages; thus, when the child process attends to modify it, a copy will be created and the modification will occur, but only on that specific page
 - When a page fault occurs, the operating system couldn't find the frame in the free frame list, so it needs to look for it in the secondary memory; due to swapping is a pretty slow procedure, majority of operating systems combine it with **page replacement**
 - **Page replacement** mainly consists of finding a **victim page** in the free frame list and moving it in the secondary memory
-- To speed up the process (in the worst case, it should be 2 operations with the secondary memory - 1 page in and 1 page out), a **dirty bit** embedded in hardware is used to mark if the page was modified
-- Thus, given the above procedures, we must solve two major problems to implement demand paging: we must develop a **frame-allocation algorithm** (how many frames are allocated to each process) and a **page-replacement algorithm** (how to choose which frame is the victim).
+- To speed up the process (in the worst case, it should be 2 operations with the secondary memory - 1 page in and 1 page out), a **dirty /modify bit** embedded in hardware is used to mark if the page was modified
+- Thus, given the above procedures, we must solve two major problems to implement demand paging: we must develop a **frame-allocation algorithm** (how many frames are allocated to each process) and a **page-replacement algorithm** (how to choose which frame is the victim)
+- Besides these, the operating system has some special kernel routines (called **reapers**) that assure the physical memory occupation doesn't decrease or increase beyond a specific threshold; it reclaims memory or suspends memory reclaiming depeding on each case
 - **Page replacement algorithms**
   - **FIFO page replacement**: the victim is the first page in the queue
   - **Optimal page replacement**: the optimal algorithm that consider the victim the page that won't be used in the longest period of time; difficult to implement since it requires future knowledge
   - **Least recently used**:
     - the victim is the oldest used page; 2 implementations: search with clocks and counters or stack with doubly linked list
     - hardware support is limited so various algorithms should be used to approximate it with lower hardware use
+    - a minimalistic way hardware supports LRU is by handling a **reference bit** that is initially cleared (set to 0) and set automatically to 1 when the page is used
     - **Additional reference bits algorithm**: 8 bits to get the history of processes, snapshot every 100 ms
-    - 
+    - **Second chance algorithm**: the algorithm is similar to FIFO replacement but it considers the reference bit (if it's 1 is set to 0 and goes to the end of the queue)
+    - **Enhance second change algorithm**: second chance algorithm + **modify bit**
+  - **Counting based page replacement**
+    - The least frequently used
+    - The most frequently used
+  - **Page buffering algoirthms and techniques**
+    - A frame is moved to a buffer before secondary storage in order for the running process to start as soon as possible
+    - When the paging device is idle it can update in the secondary memory one of the changed pages, thus adding a possible speed up to the future replacements (that considers the modify bit)
+- **Allocations of frames**
+  - **Minimum number of frames**
+    - defined by the computer architecture
+    - indirect access can provide more memory frames than the actual instruction
+  - **Algorithms**
+    - Proportional allocation (considering the size in the virtual memory and, probably, the process priority)
+    - Equal allocation
+  - **Global replacement**
+    - it refers to the ability of some processes to steal the memory frames from other processes (possibly, with lower priority)
+- When a process spends more time paging than executing (it didn't get the minimum number of frames and all the frames in the memory are owned by active processes, so they cannot be replaced since are needed right away) **thrashing** happens
+- One way to solve **thrashing** is by using a **local replacement allocation** such that the processes are not allowed to steal frames from other processes; still, this doesn't solve the problem since the processes could spend a lot of time waiting for the paging device (thus increasing the degree of multiprogramming which lead to more paging device waiting)
+- In order to tackle the problem above, we could analyse the **locality model** and see what pages are needed for some period of time; this is based on the fact that usually processes change the set of pages to use from time to time and keep it constant otherwise
+- A solution that implements the above idea consists of having a **working set window** with a specific size based on which we compute the **working set** of pages that mostly corresponds to the current locality; in this way, when the total lengths of working sets exceeds the physical memory, the kernel suspends some processes, thus avoiding thrashing
+- Another solution to the problem is a more direct approach: we want to minimize the page fault rate, so when a process has this rate above an upper bound we have to give it more frames; similarly for the lower bound
+- **Memory compression**
+- **Kernel memory allocation**
+  - **Buddy system**
+    - it involves dividing a contiguous memory location (segment) with the size power of 2 into subsegments also power of 2 until the needed space is satisfied (the nearest greater power of 2 page is chosen, possibly causing fragmentation)
+  - **Slab allocation**
+    - when a CPU or kernel subsystem does a request the **kernel allocation** is triggered and the **slab allocator** looks among the caches to find the demanded **kernel object**
+    - each cache corresponds to a certain type of kernel objects (semaphores, process descriptors etc.)
+    - each cache contains multiple slabs of pre-allocated objects and each slab corresponds to a page in the **slab memory**
+    - slabs can be in 3 states: full, empty and partial
+    - the slab allocator firstly looks for the demanded object in the **partial** slabs in order to reuse the objects; then checks the empty slabs
+    - if there is no pre-allocated object in the cache, then it is allocated a new slab with the instance of an object and referenced by a simple pointer
+    - for association, think of cache as page table, slabs as frames and kernel objects as data structures that the operating system needs and are initialised in the slabs
+    - thus, we get no memory fragmentation and fast responsivity from the kernel because of objects reuse
+- **Prepaging** involves bringing the pages into the memory before actually using it in order to prevent the page faults; it is the most potent if used together with the locality model
+- Page size
+  - Fragmentation argues for smaller page size
+  - I/O operation argues for larger page size (from latency and seek)
+  - Page fault ratio argues for larger page size
+  - The tendancy is for larger page sizes, usually `4KB`
+- **I/O interlock and page locking**
+
+# File system
+## File system interface (refactor)
+- The operating system abstracts from the physical properties of its storage devices to define a logical storage unit, the **file**
+- **Text files**, **source files**, **executable files**
+- File attributes
+  - name
+  - identifier (unique tag to identify the file within the file system)
+  - type
+  - location (pointer to the location of the file on certain device)
+  - size
+  - protection (read, write, execute)
+  - timestaps and user identification
+- File operations
+  - create a file: find space for file, directory must create an entry for the file
+  - open a file
+  - write a file: write pointer & **current-file-position pointer**
+  - read a file: read pointer & **current-file-position pointer**
+  - reposition within a file: The current-file-position pointer of the open file is repositioned to a given value; aka **seek**
+  - delete a file: free the space allocated for this file if no **hard links** remain
+  - truncating: delete its content, but the attributes are unchanged
+- When a file is open, its information is stored in an **open-file table** so that no further constant search through the file system is needed; the `open()` operation typically returns a pointer to an entry in the open-file table
+- An open file has some information associated with it throughout its existence:
+  - file pointer (**current-file position pointer**)
+  - file-open count
+  - location of the file (actual location of the file: RAM, disk, server across the network etc.)
+  - access rights (this information is stored in the **per-process table** that points to a **system-wide table** where process independent information about the file is stored)
+- File locking between the files is similar to reader-writer locks, where **shared locks** are reader locks and **exclusive locks** are writer locks
+- File extensions are hints for the users and applications
+- Internal file structure consists of a sequence of physical blocks (usually 512 bytes) that are mapped over by logical records in a way similar to contiguous memory allocation and paging; thus, it results in internal fragmentation
+- **File access methods**
+  - **Sequential access**
+    - information in a file is processed one record after another, sequentially
+    - it cannot jump to random addresses
+  - **Direct access**
+    - the file is sparsed across the memory blocks (since the secondary memory allows random access to any block) and each block references the next one through a pointer
+    - data can be accessed directly at any position (given the block and the offset) by using the **open-file table**
+- A directory is a special file that stores entries for other files; each entry associates the file with its file control block through a pointer
+- Directory operations
+  - Search for a file
+  - Create a file
+  - Delete a file (& defragmentation)
+  - List a directory
+  - Rename a file
+  - Traverse the file system (recursively)
+- Types of structures
+  - Single-level directory
+  - Two-level directory: user file directory & master file directory
+  - Tree-structured directories
+    - 1 bit to differentiate between subdirectory and file
+    - absolute and relative paths
+    - current directory
+  - Acyclic graph directories
+    - in some situations there is need for cooperation between users within the same system
+    - thus, the need for shared files rises in such a way that there is no duplication memory
+    - besides this, due to different ways to structure own directories, users can create **links** to those specific files and move them around
+    - some issues: deleting files with links pointing to them, multiple absolute addresses for a file, cycles
+  - General graph directories
+    - cycles (self cycles, normal cycles) and unreachable files are handled by the **garbage collection**
+- In the context of files protection the following operations should be considered: read, write, append, execute, delete, list, attributes change
+- One way to provide protection functionalities is by restricting the access control; this idea is implemented by providing an **access control list (ACL)** composed of: **owner**, **group**, **other / universe**
+- `drwxrwxrwx`
+- **Memory mapping** is a technique used in order to speed up the process of accessing files by allowing parts of the virtual address space to be associated with the file (brings the file in the process memory for buffering, syncronisation etc.; see the `mmap()` example from the labs)
+- Quite often, shared memory is in fact implemented by memory mapping files
+![](./images/memory_mapping.png)
+
+- **As a recap, the file system is related to the above presented functionalities as follows**:
+  - Loading Executable Files into Memory
+    - The OS reads the executable file from the file system.
+    - The executable is mapped into the process's virtual address space. This is done using memory-mapped files (e.g., mmap system call).
+      - The code segment (text) is mapped as read-only.
+      - The data segment (initialized and uninitialized data) is mapped as read-write.
+    - If the executable depends on shared libraries (e.g., .so files on Linux or .dll files on Windows), the OS loads these libraries into memory and maps them into the process's address space.
+  - Accessing Files During Execution
+    - A process calls open to access a file. The OS returns a file descriptor, which is an index into the process's file descriptor table.
+    - The process uses read and write system calls to interact with the file. The OS handles the actual reading/writing from/to the file system.
+    - Files can be mapped directly into the process's virtual address space using `mmap()`. This allows the process to access file data as if it were memory, simplifying I/O operations.
+  - Virtual Memory and File System Interaction
+    - When a process accesses a memory-mapped file or an executable's code/data, the OS loads only the required pages into RAM. If the page is not in RAM, a page fault occurs, and the OS fetches the page from the file system or swap space.
+    - If physical memory is full, the OS swaps out less-used pages to disk (swap space) and swaps in required pages from the file system.
+  - Process Isolation and File Access
+    - Each process has its own virtual address space, ensuring isolation.
+    - File access is controlled via permissions (e.g., read, write, execute) stored in the file system metadata.
+    - The OS enforces these permissions when a process tries to access a file.
+
+
+## File-system implementation
+- File systems provide efficient and convenient access to the storage device by allowing data to be stored, located, and retrieved easily.
+- Due to performance reasons (possibility for direct access and sequential processing), the file system is mainly stored on the disk, more exactly **non-volatile memory (NVM)**
+- Transfers between the memory and mass storage is done in units of **blocks** consisting of sectors of `512 bytes` (HDD) or `4KB` (NVM)
+- File system layered structure:
+  - **The I/O control** level consists of device drivers and interrupt handlers to transfer information between the main memory and the disk system (it actually serves the upper layer commands)
+  - The **basic file system** (called the "block I/O subsystem" in Linux) needs only to issue generic commands to the appropriate device driver to read and write blocks on the storage device (it does the commands and manages support for commands (buffers, scheduling etc.))
+  - The **file-organization module** knows about files and their logical blocks (it provides the translations to physical memory for the logical blocks where the needed files reside)
+  - the **logical file system** manages metadata information; it maintains the files structure via a **file-control block (inode in UNIX)** that it sends to the lower layers together with the management of directory structures so that it can find the logical addresses of needed blocks
+  - at the top there are the **application programs** that want to access certain files
+![](./images/file_system_structure.png)
+- Several on-storage and in-memory structures are used to implement a file system (equivalent to helpers and utils).
+- On storage are the following:
+  - **A boot control block** (per volume) can contain information needed by the system to boot an operating system from that volume
+  - **A volume control block** (per volume) contains volume details
+  - **A directory structure** (per file system) is used to organize the files
+  - A per-file FCB contains many details about the file
+- In-memory are the following:
+  - An in-memory **mount table** contains information about each mounted volume.
+  - An in-memory **directory-structure cache** holds the directory information of recently accessed directories.
+  - The **system-wide open-file table** contains a copy of the FCB of each open file, as well as other information.
+  - The **per-process open-file table** contains pointers to the appropriate entries in the **system-wide open-file table**, as well as other information, for all files the process has open.
+  - Buffers hold **file-system blocks** when they are being read from or written to a file system.
+![](./images/typical_fcb.png)
+![](./images/file_system_functionalities.png)
+- **Directory implementation**
+  - Besides the file system functionality layers and actual on-storage and in-memory structures, the other fundamental aspect of file-system implementation is the directory implementation
+  - **Linear list**
+    - the files are stored in memory as a list of file names together with the pointers to the memory blocks
+  - **Hash table**
+    - the directory is a hash table of file names and pointers to blocks
+- **Allocation methods**
+  - **Contiguous allocation**
+    - the files are allocated one after another in the secondary memory facilitating the sequential and direct access methods
+    - as usual, there are problems with external fragmentation
+    - besides this, the files can grow throughout the time so, if we apply some algorithms for fragmentation (like best fit or first fit) the holes found could not be sufficient in the closed future; 2 ways to handle this is by copying the files to bigger holes when the space become insufficient or create an **extent** that points to another hole
+  - **Linked allocation**
+    - each file is a set of blocks arranged in a linked list
+    - the directory entry needs to store only the first and the last pointers (to blocks) for each file
+    - only the sequential access method is possible
+    - besides this, from each block we need to decrease from its size the memory allocated for the address of the next block
+    - one solution to the above problem are grouping the blocks into **clusters**
+    - another problem is the reliability: what happens if one of the pointers is broken or a system bug occurs? some solutions would be to store more information in the blocks to make sure the next block is the suitable one (like file name or keeping a doubly linked list), but now the space for the actual file data is much more smaller
+    - a similar method is achieved by using a **File allocation table (FAT)** which is simply an indexed list (indexed by the number of blocks) whose values are the next blocks of the files or an end-of-file value
+![](./images/file_allocator_table.png)
+  - **Indexed allocation**
+    - an indexed allocation consist of having an indexed table of blocks allocated for each file where the i-th element in the table is the i-th block of the file; the directory entry just stores a pointer to the indexed table
+    - as we can see, it allows sequential access and direct access
+    - though, a problem is choosing the size of the indexed table - a bigger one could mean significant memory waste and a smaller one could mean the necessity for more indexed tables so they will become more difficult to manage
+    - solutions with more indexed tables could be:
+      - **linked scheme**: the indexed table has on the last positions a pointer to another index table
+      - **multilevel index**: the allocation contains of indexed tables with pointers to other indexed tables and so on until we reach the level where the actual file blocks reside (most suitable for big file sized eg.: 4 GB)
+      - **combined scheme**: a combination of the above could be used: an indexed table of blocks and pointers to other (multilevel) indexed tables
+- As we can see, some allocations provide only direct access and some both sequential and direct access; thus it is a good idea to know prior to file creation what methods we will use to access it in order to allocate the memory properly; also, a file can change its allocation type by copying into another file with the respective allocation
+- The performance of indexed allocation depends on the index structure, on the size of the file, and on the position of the block desired
+- **Free space management**
+  - We know how to allocate memory efficiently; but how to get that memory efficiently?
+  - To keep track of free disk space, the system maintains a **free-space list**
+  - **Bit vector**
+    - the free-space list is implemented as a vector of bits, where i-th bit is `0` means the i-th block is used and viceversa
+    - though, the search is done in groups of bits for faster processing and stopping only when the number is non-`0`
+  - **Linked list**
+    - a linked list of free blocks; when needed more memory, usually the first block is allocated and moved to FAT
+  - **Grouping**
+    - divide all the blocks into clusters of $n$ where the first block points to the next $n - 1$ blocks, and the last block points to the next block of pointers to blocks
+  - **Counting**
+    - we make use of the fact that some processes may have contiguous memory allocated so, when freed, we will store the starting address and the count of free blocks after that
+- Performance
+  - **Buffer cache** and **page cache** in the main memory -> **double caching** on memory mapping if used separately
+  - The **page cache** uses virtual memory techniques to cache file data as pages rather than as file-system-oriented blocks.
+  - to prevent inconsisting caches, some operating systems use **unified buffer cache**
+  - page caching can be improved by some particular page replacement algorithms like **free-behind** (removes a page as soon as it is processes - good for sequential access) and **read-ahead** (store the requested page and a few subsequent ones in the cache - good when assuming those blocks will be used again shortly)
+- Recovery strategies
+  - **Consistency checker**
+  - **Log-structured file system** & atomic transactions
+- **Restore and back-up**
+  - The operating system periodically does **incremental back-ups** (copies the changes since the last back-up to a separate medium) and **full back-ups** (merge all the incremental back-ups)
+  - The **restore** is based on the last **full back-up**
+  - Since we can find out a corrupted file too late (after the full back-up finished) we need another strategy to store healthy files: **forever full back-up** & full separate storage
